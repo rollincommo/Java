@@ -1,0 +1,34 @@
+interface ReadXML {
+    ByteBuffer buffer();
+    State state();
+    void state(State state);
+}
+interface State {
+  //true = keep crunching data and false = get more data
+     
+    boolean dataCrunch(ReadXML xmlRead);
+}
+enum States implements State {
+    XML {
+        public boolean dataCrunch(ReadXML xmlRead) {
+            if (xmlRead.buffer().remaining() < 16) return false;
+            // read header
+            if(headerComplete)
+                xmlRead.state(States.ROOT);
+            return true;
+        }
+    }, ROOT {
+        public boolean dataCrunch(ReadXML xmlRead) {
+            if (xmlRead.buffer().remaining() < 8) return false;
+            // read root tag
+            if(rootComplete)
+                xmlRead.state(States.IN_ROOT);
+            return true;
+        }
+    }
+}
+
+public void dataCrunch(ReadXML xmlRead) {
+    socket.read(xmlRead.buffer());
+    while(xmlRead.state().dataCrunch(xmlRead));
+}
